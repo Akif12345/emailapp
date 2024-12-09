@@ -1,101 +1,110 @@
-import Image from "next/image";
+'use client'
+
+import { useState, useEffect } from 'react'
+import EmailList from './components/EmailList'
+import EmailBody from './components/EmailBody'
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="https://nextjs.org/icons/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const [emails, setEmails] = useState([])
+  const [selectedEmail, setSelectedEmail] = useState(null)
+  const [filter, setFilter] = useState('all')
+  const [page, setPage] = useState(1)
+  const [readEmails, setReadEmails] = useState([])
+  const [favoriteEmails, setFavoriteEmails] = useState([])
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+  useEffect(() => {
+    fetchEmails()
+    const storedReadEmails = JSON.parse(localStorage.getItem('readEmails') || '[]')
+    const storedFavoriteEmails = JSON.parse(localStorage.getItem('favoriteEmails') || '[]')
+    setReadEmails(storedReadEmails)
+    setFavoriteEmails(storedFavoriteEmails)
+  }, [page])
+
+  const fetchEmails = async () => {
+    const response = await fetch(`https://flipkart-email-mock.now.sh/?page=${page}`)
+    const data = await response.json()
+    setEmails(prevEmails => [...prevEmails, ...data.list])
+  }
+
+  const handleEmailSelect = (email) => {
+    setSelectedEmail(email)
+    if (!readEmails.includes(email.id)) {
+      const newReadEmails = [...readEmails, email.id]
+      setReadEmails(newReadEmails)
+      localStorage.setItem('readEmails', JSON.stringify(newReadEmails))
+    }
+  }
+
+  const handleFilter = (newFilter) => {
+    setFilter(newFilter)
+  }
+
+  const handleLoadMore = () => {
+    setPage(prevPage => prevPage + 1)
+  }
+
+  const handleMarkFavorite = (emailId) => {
+    const newFavoriteEmails = favoriteEmails.includes(emailId)
+      ? favoriteEmails.filter(id => id !== emailId)
+      : [...favoriteEmails, emailId]
+    setFavoriteEmails(newFavoriteEmails)
+    localStorage.setItem('favoriteEmails', JSON.stringify(newFavoriteEmails))
+  }
+
+  return (
+    <main className="flex min-h-screen bg-gray-100">
+      <div className={`w-full ${selectedEmail ? 'md:w-1/2' : ''} p-4`}>
+        <div className="mb-4">
+          <button
+            className={`mr-2 px-4 py-2 rounded ${filter === 'all' ? 'bg-blue-500 text-white' : 'bg-white'}`}
+            onClick={() => handleFilter('all')}
           >
-            <Image
-              className="dark:invert"
-              src="https://nextjs.org/icons/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+            All
+          </button>
+          <button
+            className={`mr-2 px-4 py-2 rounded ${filter === 'unread' ? 'bg-blue-500 text-white' : 'bg-white'}`}
+            onClick={() => handleFilter('unread')}
           >
-            Read our docs
-          </a>
+            Unread
+          </button>
+          <button
+            className={`mr-2 px-4 py-2 rounded ${filter === 'read' ? 'bg-blue-500 text-white' : 'bg-white'}`}
+            onClick={() => handleFilter('read')}
+          >
+            Read
+          </button>
+          <button
+            className={`px-4 py-2 rounded ${filter === 'favorites' ? 'bg-blue-500 text-white' : 'bg-white'}`}
+            onClick={() => handleFilter('favorites')}
+          >
+            Favorites
+          </button>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+        <EmailList
+          emails={emails}
+          filter={filter}
+          onEmailSelect={handleEmailSelect}
+          selectedEmail={selectedEmail}
+          readEmails={readEmails}
+          favoriteEmails={favoriteEmails}
+        />
+        <button
+          className="mt-4 px-4 py-2 bg-blue-500 text-white rounded"
+          onClick={handleLoadMore}
         >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
+          Load More
+        </button>
+      </div>
+      {selectedEmail && (
+        <div className="hidden md:block w-1/2 p-4">
+          <EmailBody 
+            email={selectedEmail} 
+            isFavorite={favoriteEmails.includes(selectedEmail.id)}
+            onMarkFavorite={() => handleMarkFavorite(selectedEmail.id)}
           />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
-  );
+        </div>
+      )}
+    </main>
+  )
 }
+
